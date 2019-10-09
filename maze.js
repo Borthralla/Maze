@@ -110,6 +110,96 @@ class Maze {
 		}
 	}
 
+	adjacencyList() {
+		let result = []
+		for (var i = 0; i < this.width * this.height; i++) {
+			result.push([])
+		}
+		for (var edge of this.edges) {
+			let {parent, child} = edge
+			result[parent].push(child)
+			result[child].push(parent)
+		}
+		return result
+	}
+	// A solution is an array of nodes signifying a path
+	// Solution is traditionally from top left to lower right
+	getSolution() {
+		let adjacencyList = this.adjacencyList()
+		let start = 0
+		let end = this.width * this.height - 1
+		let todo = new Stack()
+		let parent = []
+		for (var i = 0; i < this.width * this.height; i++) {
+			parent[i] = -1
+		}
+		parent[start] = 0
+		todo.push(start)
+		// basic DFS
+		while(todo.length > 0) {
+			let node = todo.pop()
+			for (var child of adjacencyList[node]) {
+				if (parent[child] == -1) {
+					todo.push(child)
+					parent[child] = node
+					if (child == end) {
+						break
+					}
+				}
+			}
+		}
+		// Iterate through path, starting at the end
+		let path = [end]
+		let node = end
+		while(node != start) {
+			node = parent[node]
+			path.push(node)
+		}
+		return path.reverse()
+
+	}
+	// Since the maze is a tree, we can use DFS to calculate shortest path
+	// This algorithm finds the longest path starting at a node
+	getLongestPathFromNode(start) {
+		let adjacencyList = this.adjacencyList()
+		let todo = new Stack()
+		let parent = []
+		let length = []
+		let maxLength = 0
+		let maxNode = 0
+		for (var i = 0; i < this.width * this.height; i++) {
+			parent[i] = -1
+			length[i] = -1
+		}
+		parent[start] = start
+		length[start] = 0
+		todo.push(start)
+		// basic DFS
+		while(todo.length > 0) {
+			let node = todo.pop()
+			for (var child of adjacencyList[node]) {
+				if (parent[child] == -1) {
+					todo.push(child)
+					parent[child] = node
+					let childLength = length[node] + 1
+					length[child] = childLength
+					if (childLength > maxLength) {
+						maxLength = childLength
+						maxNode = child
+					}
+				}
+			}
+		}
+		// Iterate through path, starting at the end
+		let path = [maxNode]
+		let node = maxNode
+		while(node != start) {
+			node = parent[node]
+			path.push(node)
+		}
+		return path.reverse()
+	}
+
 	drawMaze(cellSize, wallWidth) {
 		const canvas = document.getElementById('canvas');
 		canvas.width = (this.width + 1) * cellSize
@@ -134,13 +224,43 @@ class Maze {
 			}
 			let x = parent % this.width * cellSize
 			let y = Math.floor(parent / this.width) * cellSize
-			console.log(parent, child)
 			if (child - parent == 1) {
 				ctx.fillRect(x + cellSize, y + wallWidth, wallWidth, cellSize - wallWidth)
 			}
 			else {
 				ctx.fillRect(x + wallWidth, y + cellSize, cellSize - wallWidth, wallWidth)
 			}
+		}
+
+	}
+
+	drawSolution(cellSize, cellWidth) {
+		const canvas = document.getElementById('canvas');
+		const ctx = canvas.getContext('2d');
+		let solution = this.getSolution()
+		ctx.fillStyle = 'red'
+		for (var node of solution) {
+			let col = node % this.width
+			let row = Math.floor(node / this.width)
+			let x = col * cellSize + cellSize / 2
+			let y = row * cellSize + cellSize / 2
+			ctx.fillRect(x, y, 2, 2)
+		}
+	}
+
+	drawLongestPath(cellSize, wallWidth) {
+		const canvas = document.getElementById('canvas');
+		const ctx = canvas.getContext('2d');
+		let longestStartPath = this.getLongestPathFromNode(0)
+		let nextStart = longestStartPath[longestStartPath.length - 1]
+		let solution = this.getLongestPathFromNode(nextStart)
+		ctx.fillStyle = 'red'
+		for (var node of solution) {
+			let col = node % this.width
+			let row = Math.floor(node / this.width)
+			let x = col * cellSize + cellSize / 2
+			let y = row * cellSize + cellSize / 2
+			ctx.fillRect(x, y, 2, 2)
 		}
 
 	}
@@ -154,4 +274,6 @@ class Edge {
 }
 
 let maze = new Maze(1000, 1000)
+console.log(maze.getSolution())
 maze.drawMaze(5, 1)
+maze.drawSolution(5, 1)
